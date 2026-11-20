@@ -1,7 +1,7 @@
-# Публикация текущего VERSION на GitHub Releases.
-# Установщик не коммитится в git — только asset релиза.
-# Нужны: gh auth login, git remote origin.
-# Запуск из корня: powershell -File scripts\publish-release.ps1
+# Publish current VERSION to GitHub Releases.
+# Setup exe is NOT committed to git - only a release asset.
+# Requires: gh auth login, git remote origin.
+# From repo root: powershell -File scripts\publish-release.ps1
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -12,14 +12,14 @@ $gh = if (Get-Command gh -ErrorAction SilentlyContinue) {
 } elseif (Test-Path "$env:TEMP\gh-cli\bin\gh.exe") {
   "$env:TEMP\gh-cli\bin\gh.exe"
 } else {
-  throw 'Установи GitHub CLI: https://cli.github.com/'
+  throw 'Install GitHub CLI: https://cli.github.com/'
 }
 
 $version = (Get-Content VERSION -Raw).Trim()
-if (-not $version) { throw 'Пустой VERSION' }
+if (-not $version) { throw 'VERSION is empty' }
 $tag = "v$version"
 $setup = Join-Path $root "dist\GMS-ULA-Setup-$version.exe"
-if (-not (Test-Path $setup)) { throw "Нет файла $setup — сначала собери установщик" }
+if (-not (Test-Path $setup)) { throw "Missing setup file: $setup" }
 
 $notes = Join-Path $env:TEMP "gms-release-$version.md"
 $changelog = Get-Content CHANGELOG.md -Raw -Encoding UTF8
@@ -37,7 +37,7 @@ if (-not $remote) {
 & git add -f .gitignore README.md CHANGELOG.md VERSION scripts/publish-release.ps1
 $status = & git status --porcelain
 if ($status) {
-  & git commit -m "Релиз $version."
+  & git commit -m "Release $version."
 }
 
 $existing = & git rev-parse -q --verify "refs/tags/$tag" 2>$null
@@ -48,10 +48,10 @@ if ($existing) {
 & git push -u origin HEAD
 & git push origin $tag
 
-$release = & $gh release view $tag 2>$null
+& $gh release view $tag 2>$null | Out-Null
 if ($LASTEXITCODE -eq 0) {
   & $gh release upload $tag $setup --clobber
 } else {
   & $gh release create $tag $setup --title "GMS - ULA $version" --notes-file $notes --latest
 }
-Write-Host "OK $tag → https://github.com/kolyaz/GMS/releases/tag/$tag"
+Write-Host "OK $tag https://github.com/kolyaz/GMS/releases/tag/$tag"
