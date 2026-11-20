@@ -1,0 +1,8 @@
+*
+!.gitignore
+!README.md
+!README.MD
+!CHANGELOG.md
+!VERSION
+!scripts/
+!scripts/**
